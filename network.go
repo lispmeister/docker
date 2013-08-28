@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/dotcloud/docker/proxy"
 	"github.com/dotcloud/docker/utils"
 	"log"
 	"net"
@@ -197,16 +198,16 @@ func getIfaceAddr(name string) (net.Addr, error) {
 
 type PortMapper struct {
 	tcpMapping map[int]*net.TCPAddr
-	tcpProxies map[int]Proxy
+	tcpProxies map[int]proxy.Proxy
 	udpMapping map[int]*net.UDPAddr
-	udpProxies map[int]Proxy
+	udpProxies map[int]proxy.Proxy
 }
 
 func (mapper *PortMapper) cleanup() error {
 	mapper.tcpMapping = make(map[int]*net.TCPAddr)
-	mapper.tcpProxies = make(map[int]Proxy)
+	mapper.tcpProxies = make(map[int]proxy.Proxy)
 	mapper.udpMapping = make(map[int]*net.UDPAddr)
-	mapper.udpProxies = make(map[int]Proxy)
+	mapper.udpProxies = make(map[int]proxy.Proxy)
 
 	return nil
 }
@@ -218,7 +219,7 @@ func (mapper *PortMapper) setup() error {
 func (mapper *PortMapper) Map(port int, backendAddr net.Addr) error {
 	if _, isTCP := backendAddr.(*net.TCPAddr); isTCP {
 		mapper.tcpMapping[port] = backendAddr.(*net.TCPAddr)
-		proxy, err := NewProxy(&net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: port}, backendAddr)
+		proxy, err := proxy.NewProxy(&net.TCPAddr{IP: net.IPv4(0, 0, 0, 0), Port: port}, backendAddr)
 		if err != nil {
 			mapper.Unmap(port, "tcp")
 			return err
@@ -227,7 +228,7 @@ func (mapper *PortMapper) Map(port int, backendAddr net.Addr) error {
 		go proxy.Run()
 	} else {
 		mapper.udpMapping[port] = backendAddr.(*net.UDPAddr)
-		proxy, err := NewProxy(&net.UDPAddr{IP: net.IPv4(0, 0, 0, 0), Port: port}, backendAddr)
+		proxy, err := proxy.NewProxy(&net.UDPAddr{IP: net.IPv4(0, 0, 0, 0), Port: port}, backendAddr)
 		if err != nil {
 			mapper.Unmap(port, "udp")
 			return err
