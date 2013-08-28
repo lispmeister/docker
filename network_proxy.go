@@ -40,6 +40,7 @@ func NewTCPProxy(frontendAddr, backendAddr *net.TCPAddr) (*TCPProxy, error) {
 	if err != nil {
 		return nil, err
 	}
+	utils.Debugf("New TCP proxy listening on %s", frontendAddr.String())
 	// If the port in frontendAddr was 0 then ListenTCP will have a picked
 	// a port to listen on, hence the call to Addr to get that actual port:
 	return &TCPProxy{
@@ -152,6 +153,8 @@ func NewUDPProxy(frontendAddr, backendAddr *net.UDPAddr) (*UDPProxy, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	utils.Debugf("New UDP proxy listening on %s", frontendAddr.String())
 	return &UDPProxy{
 		listener:       listener,
 		frontendAddr:   listener.LocalAddr().(*net.UDPAddr),
