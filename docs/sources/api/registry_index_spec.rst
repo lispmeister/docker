@@ -8,8 +8,6 @@
 Registry & Index Spec
 =====================
 
-.. contents:: Table of Contents
-
 1. The 3 roles
 ===============
 
@@ -39,7 +37,7 @@ We expect that there will be only one instance of the index, run and managed by 
 - It delegates authentication and authorization to the Index Auth service using tokens
 - It supports different storage backends (S3, cloud files, local FS)
 - It doesn’t have a local database
-- It will be open-sourced at some point
+- `Source Code <https://github.com/dotcloud/docker-registry>`_
 
 We expect that there will be multiple registries out there. To help to grasp the context, here are some examples of registries:
 
@@ -47,10 +45,6 @@ We expect that there will be multiple registries out there. To help to grasp the
 - **mirror registry**: such a registry is provided by a third-party hosting infrastructure but is targeted at their customers only. Some mechanism (unspecified to date) ensures that public images are pulled from a sponsor registry to the mirror registry, to make sure that the customers of the third-party provider can “docker pull” those images locally.
 - **vendor registry**: such a registry is provided by a software vendor, who wants to distribute docker images. It would be operated and managed by the vendor. Only users authorized by the vendor would be able to get write access. Some images would be public (accessible for anyone), others private (accessible only for authorized users). Authentication and authorization would be delegated to the Index. The goal of vendor registries is to let someone do “docker pull basho/riak1.3” and automatically push from the vendor registry (instead of a sponsor registry); i.e. get all the convenience of a sponsor registry, while retaining control on the asset distribution.
 - **private registry**: such a registry is located behind a firewall, or protected by an additional security layer (HTTP authorization, SSL client-side certificates, IP address authorization...). The registry is operated by a private entity, outside of dotCloud’s control. It can optionally delegate additional authorization to the Index, but it is not mandatory.
-
-.. note::
-
-    Mirror registries and private registries which do not use the Index don’t even need to run the registry code. They can be implemented by any kind of transport implementing HTTP GET and PUT. Read-only registries can be powered by a simple static HTTP server.
 
 .. note::
 
@@ -564,8 +558,8 @@ Next request::
     Cookie: session="wD/J7LqL5ctqw8haL10vgfhrb2Q=?foo=UydiYXInCnAxCi4=&timestamp=RjEzNjYzMTQ5NDcuNDc0NjQzCi4="
 
 
-7.0 Document Version
----------------------
+7 Document Version
+====================
 
 - 1.0 : May 6th 2013 : initial release 
 - 1.1 : June 1st 2013 : Added Delete Repository and way to handle new source namespace.

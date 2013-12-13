@@ -26,10 +26,11 @@ var (
 )
 
 type AuthConfig struct {
-	Username string `json:"username,omitempty"`
-	Password string `json:"password,omitempty"`
-	Auth     string `json:"auth"`
-	Email    string `json:"email"`
+	Username      string `json:"username,omitempty"`
+	Password      string `json:"password,omitempty"`
+	Auth          string `json:"auth"`
+	Email         string `json:"email"`
+	ServerAddress string `json:"serveraddress,omitempty"`
 }
 
 type ConfigFile struct {
@@ -62,7 +63,7 @@ func decodeAuth(authStr string) (string, string, error) {
 	if n > decLen {
 		return "", "", fmt.Errorf("Something went wrong decoding auth config")
 	}
-	arr := strings.Split(string(decoded), ":")
+	arr := strings.SplitN(string(decoded), ":", 2)
 	if len(arr) != 2 {
 		return "", "", fmt.Errorf("Invalid auth configuration file")
 	}
@@ -90,12 +91,19 @@ func LoadConfig(rootPath string) (*ConfigFile, error) {
 		}
 		authConfig := AuthConfig{}
 		origAuth := strings.Split(arr[0], " = ")
+		if len(origAuth) != 2 {
+			return &configFile, fmt.Errorf("Invalid Auth config file")
+		}
 		authConfig.Username, authConfig.Password, err = decodeAuth(origAuth[1])
 		if err != nil {
 			return &configFile, err
 		}
 		origEmail := strings.Split(arr[1], " = ")
+		if len(origEmail) != 2 {
+			return &configFile, fmt.Errorf("Invalid Auth config file")
+		}
 		authConfig.Email = origEmail[1]
+		authConfig.ServerAddress = IndexServerAddress()
 		configFile.Configs[IndexServerAddress()] = authConfig
 	} else {
 		for k, authConfig := range configFile.Configs {
@@ -105,6 +113,7 @@ func LoadConfig(rootPath string) (*ConfigFile, error) {
 			}
 			authConfig.Auth = ""
 			configFile.Configs[k] = authConfig
+			authConfig.ServerAddress = k
 		}
 	}
 	return &configFile, nil
@@ -125,7 +134,7 @@ func SaveConfig(configFile *ConfigFile) error {
 		authCopy.Auth = encodeAuth(&authCopy)
 		authCopy.Username = ""
 		authCopy.Password = ""
-
+		authCopy.ServerAddress = ""
 		configs[k] = authCopy
 	}
 
@@ -146,14 +155,26 @@ func Login(authConfig *AuthConfig, factory *utils.HTTPRequestFactory) (string, e
 	reqStatusCode := 0
 	var status string
 	var reqBody []byte
-	jsonBody, err := json.Marshal(authConfig)
+
+	serverAddress := authConfig.ServerAddress
+	if serverAddress == "" {
+		serverAddress = IndexServerAddress()
+	}
+
+	loginAgainstOfficialIndex := serverAddress == IndexServerAddress()
+
+	// to avoid sending the server address to the server it should be removed before marshalled
+	authCopy := *authConfig
+	authCopy.ServerAddress = ""
+
+	jsonBody, err := json.Marshal(authCopy)
 	if err != nil {
 		return "", fmt.Errorf("Config Error: %s", err)
 	}
 
 	// using `bytes.NewReader(jsonBody)` here causes the server to respond with a 411 status.
 	b := strings.NewReader(string(jsonBody))
-	req1, err := http.Post(IndexServerAddress()+"users/", "application/json; charset=utf-8", b)
+	req1, err := http.Post(serverAddress+"users/", "application/json; charset=utf-8", b)
 	if err != nil {
 		return "", fmt.Errorf("Server Error: %s", err)
 	}
@@ -165,14 +186,15 @@ func Login(authConfig *AuthConfig, factory *utils.HTTPRequestFactory) (string, e
 	}
 
 	if reqStatusCode == 201 {
-		status = "Account created. Please use the confirmation link we sent" +
-			" to your e-mail to activate it."
-	} else if reqStatusCode == 403 {
-		return "", fmt.Errorf("Login: Your account hasn't been activated. " +
-			"Please check your e-mail for a confirmation link.")
+		if loginAgainstOfficialIndex {
+			status = "Account created. Please use the confirmation link we sent" +
+				" to your e-mail to activate it."
+		} else {
+			status = "Account created. Please see the documentation of the registry " + serverAddress + " for instructions how to activate it."
+		}
 	} else if reqStatusCode == 400 {
 		if string(reqBody) == "\"Username or email already exists\"" {
-			req, err := factory.NewRequest("GET", IndexServerAddress()+"users/", nil)
+			req, err := factory.NewRequest("GET", serverAddress+"users/", nil)
 			req.SetBasicAuth(authConfig.Username, authConfig.Password)
 			resp, err := client.Do(req)
 			if err != nil {
@@ -187,15 +209,90 @@ func Login(authConfig *AuthConfig, factory *utils.HTTPRequestFactory) (string, e
 				status = "Login Succeeded"
 			} else if resp.StatusCode == 401 {
 				return "", fmt.Errorf("Wrong login/password, please try again")
+			} else if resp.StatusCode == 403 {
+				if loginAgainstOfficialIndex {
+					return "", fmt.Errorf("Login: Account is not Active. Please check your e-mail for a confirmation link.")
+				}
+				return "", fmt.Errorf("Login: Account is not Active. Please see the documentation of the registry %s for instructions how to activate it.", serverAddress)
 			} else {
-				return "", fmt.Errorf("Login: %s (Code: %d; Headers: %s)", body,
-					resp.StatusCode, resp.Header)
+				return "", fmt.Errorf("Login: %s (Code: %d; Headers: %s)", body, resp.StatusCode, resp.Header)
 			}
 		} else {
 			return "", fmt.Errorf("Registration: %s", reqBody)
+		}
+	} else if reqStatusCode == 401 {
+		// This case would happen with private registries where /v1/users is
+		// protected, so people can use `docker login` as an auth check.
+		req, err := factory.NewRequest("GET", serverAddress+"users/", nil)
+		req.SetBasicAuth(authConfig.Username, authConfig.Password)
+		resp, err := client.Do(req)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
+		if resp.StatusCode == 200 {
+			status = "Login Succeeded"
+		} else if resp.StatusCode == 401 {
+			return "", fmt.Errorf("Wrong login/password, please try again")
+		} else {
+			return "", fmt.Errorf("Login: %s (Code: %d; Headers: %s)", body,
+				resp.StatusCode, resp.Header)
 		}
 	} else {
 		return "", fmt.Errorf("Unexpected status code [%d] : %s", reqStatusCode, reqBody)
 	}
 	return status, nil
+}
+
+// this method matches a auth configuration to a server address or a url
+func (config *ConfigFile) ResolveAuthConfig(registry string) AuthConfig {
+	if registry == IndexServerAddress() || len(registry) == 0 {
+		// default to the index server
+		return config.Configs[IndexServerAddress()]
+	}
+	// if its not the index server there are three cases:
+	//
+	// 1. this is a full config url -> it should be used as is
+	// 2. it could be a full url, but with the wrong protocol
+	// 3. it can be the hostname optionally with a port
+	//
+	// as there is only one auth entry which is fully qualified we need to start
+	// parsing and matching
+
+	swapProtocol := func(url string) string {
+		if strings.HasPrefix(url, "http:") {
+			return strings.Replace(url, "http:", "https:", 1)
+		}
+		if strings.HasPrefix(url, "https:") {
+			return strings.Replace(url, "https:", "http:", 1)
+		}
+		return url
+	}
+
+	resolveIgnoringProtocol := func(url string) AuthConfig {
+		if c, found := config.Configs[url]; found {
+			return c
+		}
+		registrySwappedProtocol := swapProtocol(url)
+		// now try to match with the different protocol
+		if c, found := config.Configs[registrySwappedProtocol]; found {
+			return c
+		}
+		return AuthConfig{}
+	}
+
+	// match both protocols as it could also be a server name like httpfoo
+	if strings.HasPrefix(registry, "http:") || strings.HasPrefix(registry, "https:") {
+		return resolveIgnoringProtocol(registry)
+	}
+
+	url := "https://" + registry
+	if !strings.Contains(registry, "/") {
+		url = url + "/v1/"
+	}
+	return resolveIgnoringProtocol(url)
 }

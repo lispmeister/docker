@@ -46,7 +46,7 @@ List containers
 	   [
 		{
 			"Id": "8dfafdbc3a40",
-			"Image": "base:latest",
+			"Image": "ubuntu:latest",
 			"Command": "echo 1",
 			"Created": 1367854155,
 			"Status": "Exit 0",
@@ -56,7 +56,7 @@ List containers
 		},
 		{
 			"Id": "9cd87474be90",
-			"Image": "base:latest",
+			"Image": "ubuntu:latest",
 			"Command": "echo 222222",
 			"Created": 1367854155,
 			"Status": "Exit 0",
@@ -66,7 +66,7 @@ List containers
 		},
 		{
 			"Id": "3176a2479c92",
-			"Image": "base:latest",
+			"Image": "centos:latest",
 			"Command": "echo 3333333333333333",
 			"Created": 1367854154,
 			"Status": "Exit 0",
@@ -76,7 +76,7 @@ List containers
 		},
 		{
 			"Id": "4cb07b47f9fb",
-			"Image": "base:latest",
+			"Image": "fedora:latest",
 			"Command": "echo 444444444444444444444444444444444",
 			"Created": 1367854152,
 			"Status": "Exit 0",
@@ -119,6 +119,7 @@ Create a container
 		"AttachStdout":true,
 		"AttachStderr":true,
 		"PortSpecs":null,
+		"Privileged": false,
 		"Tty":false,
 		"OpenStdin":false,
 		"StdinOnce":false,
@@ -127,7 +128,7 @@ Create a container
 			"date"
 		],
 		"Dns":null,
-		"Image":"base",
+		"Image":"ubuntu",
 		"Volumes":{},
 		"VolumesFrom":"",
 		"WorkingDir":""
@@ -195,7 +196,7 @@ Inspect a container
 					"date"
 				],
 				"Dns": null,
-				"Image": "base",
+				"Image": "ubuntu",
 				"Volumes": {},
 				"VolumesFrom": "",
 				"WorkingDir":""
@@ -223,6 +224,7 @@ Inspect a container
 
 	:statuscode 200: no error
 	:statuscode 404: no such container
+	:statuscode 409: conflict between containers and images
 	:statuscode 500: server error
 
 
@@ -357,7 +359,7 @@ Start a container
 
            {
                 "Binds":["/tmp:/tmp"],
-                "LxcConf":{"lxc.utsname":"docker"}
+                "LxcConf":[{"Key":"lxc.utsname","Value":"docker"}]
            }
 
         **Example response**:
@@ -590,16 +592,16 @@ List Images
 	   
 	   [
 		{
-			"Repository":"base",
-			"Tag":"ubuntu-12.10",
+			"Repository":"ubuntu",
+			"Tag":"precise",
 			"Id":"b750fe79269d",
 			"Created":1364102658,
 			"Size":24653,
 			"VirtualSize":180116135
 		},
 		{
-			"Repository":"base",
-			"Tag":"ubuntu-quantal",
+			"Repository":"ubuntu",
+			"Tag":"12.04",
 			"Id":"b750fe79269d",
 			"Created":1364102658,
 			"Size":24653,
@@ -633,9 +635,9 @@ List Images
 	   "d6434d954665" -> "d82cbacda43a"
 	   base -> "e9aa60c60128" [style=invis]
 	   "074be284591f" -> "f71189fff3de"
-	   "b750fe79269d" [label="b750fe79269d\nbase",shape=box,fillcolor="paleturquoise",style="filled,rounded"];
-	   "e9aa60c60128" [label="e9aa60c60128\nbase2",shape=box,fillcolor="paleturquoise",style="filled,rounded"];
-	   "9a33b36209ed" [label="9a33b36209ed\ntest",shape=box,fillcolor="paleturquoise",style="filled,rounded"];
+	   "b750fe79269d" [label="b750fe79269d\nubuntu",shape=box,fillcolor="paleturquoise",style="filled,rounded"];
+	   "e9aa60c60128" [label="e9aa60c60128\ncentos",shape=box,fillcolor="paleturquoise",style="filled,rounded"];
+	   "9a33b36209ed" [label="9a33b36209ed\nfedora",shape=box,fillcolor="paleturquoise",style="filled,rounded"];
 	   base [style=invisible]
 	   }
  
@@ -656,7 +658,7 @@ Create an image
 
         .. sourcecode:: http
 
-           POST /images/create?fromImage=base HTTP/1.1
+           POST /images/create?fromImage=ubuntu HTTP/1.1
 
         **Example response**:
 
@@ -679,8 +681,8 @@ Create an image
         :statuscode 500: server error
 
 
-Insert a file in a image
-************************
+Insert a file in an image
+*************************
 
 .. http:post:: /images/(name)/insert
 
@@ -719,7 +721,7 @@ Inspect an image
 
 	.. sourcecode:: http
 
-	   GET /images/base/json HTTP/1.1
+	   GET /images/centos/json HTTP/1.1
 
 	**Example response**:
 
@@ -749,7 +751,7 @@ Inspect an image
 				"Env":null,
 				"Cmd": ["/bin/bash"]
 				,"Dns":null,
-				"Image":"base",
+				"Image":"centos",
 				"Volumes":null,
 				"VolumesFrom":"",
 				"WorkingDir":""
@@ -759,7 +761,8 @@ Inspect an image
 
 	:statuscode 200: no error
 	:statuscode 404: no such image
-        :statuscode 500: server error
+	:statuscode 409: conflict between containers and images
+	:statuscode 500: server error
 
 
 Get the history of an image
@@ -773,7 +776,7 @@ Get the history of an image
 
         .. sourcecode:: http
 
-           GET /images/base/history HTTP/1.1
+           GET /images/fedora/history HTTP/1.1
 
         **Example response**:
 
@@ -940,36 +943,36 @@ Build an image from Dockerfile via stdin
 
 .. http:post:: /build
 
-   Build an image from Dockerfile via stdin
+    Build an image from Dockerfile via stdin
 
-   **Example request**:
+    **Example request**:
 
-   .. sourcecode:: http
+    .. sourcecode:: http
 
-      POST /build HTTP/1.1
+        POST /build HTTP/1.1
 
-      {{ STREAM }}
+        {{ STREAM }}
 
-   **Example response**:
+    **Example response**:
 
-   .. sourcecode:: http
+    .. sourcecode:: http
 
-      HTTP/1.1 200 OK
+        HTTP/1.1 200 OK
 
-      {{ STREAM }}
+        {{ STREAM }}
 
 
-       The stream must be a tar archive compressed with one of the following algorithms:
-       identity (no compression), gzip, bzip2, xz. The archive must include a file called
-       `Dockerfile` at its root. It may include any number of other files, which will be
-       accessible in the build context (See the ADD build command).
+    The stream must be a tar archive compressed with one of the following algorithms:
+    identity (no compression), gzip, bzip2, xz. The archive must include a file called
+    `Dockerfile` at its root. It may include any number of other files, which will be
+    accessible in the build context (See the ADD build command).
 
-       The Content-type header should be set to "application/tar".
+    The Content-type header should be set to "application/tar".
 
-	:query t: repository name (and optionally a tag) to be applied to the resulting image in case of success
-	:query q: suppress verbose build output
+    :query t: repository name (and optionally a tag) to be applied to the resulting image in case of success
+    :query q: suppress verbose build output
     :query nocache: do not use the cache when building the image
-	:statuscode 200: no error
+    :statuscode 200: no error
     :statuscode 500: server error
 
 
@@ -990,7 +993,8 @@ Check auth configuration
 	   {
 		"username":"hannibal",
 		"password:"xxxx",
-		"email":"hannibal@a-team.com"
+		"email":"hannibal@a-team.com",
+		"serveraddress":"https://index.docker.io/v1/"
 	   }
 
         **Example response**:
@@ -1065,8 +1069,8 @@ Show the docker version information
 		"GoVersion":"go1.0.3"
 	   }
 
-        :statuscode 200: no error
-	:statuscode 500: server error
+    :statuscode 200: no error
+    :statuscode 500: server error
 
 
 Create a new image from a container's changes
@@ -1080,26 +1084,31 @@ Create a new image from a container's changes
 
     .. sourcecode:: http
 
-        POST /commit?container=44c004db4b17&m=message&repo=myrepo HTTP/1.1
+       POST /commit?container=44c004db4b17&m=message&repo=myrepo HTTP/1.1
+       Content-Type: application/json
+   
+       {
+           "Cmd": ["cat", "/world"],
+           "PortSpecs":["22"]
+       }
 
-        **Example response**:
+    **Example response**:
 
     .. sourcecode:: http
 
-        HTTP/1.1 201 OK
-	    Content-Type: application/vnd.docker.raw-stream
+       HTTP/1.1 201 OK
+	   Content-Type: application/vnd.docker.raw-stream
 
-        {"Id":"596069db4bf5"}
+       {"Id":"596069db4bf5"}
 
-	:query container: source container
-	:query repo: repository
-	:query tag: tag
-	:query m: commit message
-	:query author: author (eg. "John Hannibal Smith <hannibal@a-team.com>")
-	:query run: config automatically applied when the image is run. (ex: {"Cmd": ["cat", "/world"], "PortSpecs":["22"]})
-        :statuscode 201: no error
-	:statuscode 404: no such container
-        :statuscode 500: server error
+    :query container: source container
+    :query repo: repository
+    :query tag: tag
+    :query m: commit message
+    :query author: author (eg. "John Hannibal Smith <hannibal@a-team.com>")
+    :statuscode 201: no error
+    :statuscode 404: no such container
+    :statuscode 500: server error
 
 
 Monitor Docker's events
@@ -1122,10 +1131,10 @@ Monitor Docker's events
            HTTP/1.1 200 OK
 	   Content-Type: application/json
 
-	   {"status":"create","id":"dfdf82bd3881","from":"base:latest","time":1374067924}
-	   {"status":"start","id":"dfdf82bd3881","from":"base:latest","time":1374067924}
-	   {"status":"stop","id":"dfdf82bd3881","from":"base:latest","time":1374067966}
-	   {"status":"destroy","id":"dfdf82bd3881","from":"base:latest","time":1374067970}
+	   {"status":"create","id":"dfdf82bd3881","from":"ubuntu:latest","time":1374067924}
+	   {"status":"start","id":"dfdf82bd3881","from":"ubuntu:latest","time":1374067924}
+	   {"status":"stop","id":"dfdf82bd3881","from":"ubuntu:latest","time":1374067966}
+	   {"status":"destroy","id":"dfdf82bd3881","from":"ubuntu:latest","time":1374067970}
 
 	:query since: timestamp used for polling
         :statuscode 200: no error

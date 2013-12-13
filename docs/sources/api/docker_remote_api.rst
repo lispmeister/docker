@@ -9,7 +9,6 @@
 Docker Remote API
 =================
 
-.. contents:: Table of Contents
 
 1. Brief introduction
 =====================
@@ -27,23 +26,208 @@ Docker Remote API
 2. Versions
 ===========
 
-The current version of the API is 1.4
+The current version of the API is 1.7
 
 Calling /images/<name>/insert is the same as calling
-/v1.4/images/<name>/insert 
+/v1.7/images/<name>/insert
 
 You can still call an old version of the api using
 /v1.0/images/<name>/insert
 
-:doc:`docker_remote_api_v1.4`
-*****************************
+
+v1.8
+****
+
+Full Documentation
+------------------
+
+:doc:`docker_remote_api_v1.8`
+
+What's new
+----------
+
+.. http:post:: /build
+
+   **New!** This endpoint now returns build status as json stream. In case
+   of a build error, it returns the exit status of the failed command.
+
+.. http:get:: /containers/(id)/json
+
+    **New!** This endpoint now returns the host config for the container.
+
+.. http:post:: /images/create
+.. http:post:: /images/(name)/insert
+.. http:post:: /images/(name)/push
+
+  **New!** progressDetail object was added in the JSON. It's now possible
+  to get the current value and the total of the progress without having to
+  parse the string.
+
+v1.7
+****
+
+Full Documentation
+------------------
+
+:doc:`docker_remote_api_v1.7`
+
+What's new
+----------
+
+.. http:get:: /images/json
+
+   The format of the json returned from this uri changed.  Instead of an entry
+   for each repo/tag on an image, each image is only represented once, with a
+   nested attribute indicating the repo/tags that apply to that image.
+
+   Instead of:
+
+   .. sourcecode:: http
+
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+
+      [
+        {
+          "VirtualSize": 131506275,
+          "Size": 131506275,
+          "Created": 1365714795,
+          "Id": "8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c",
+          "Tag": "12.04",
+          "Repository": "ubuntu"
+        },
+        {
+          "VirtualSize": 131506275,
+          "Size": 131506275,
+          "Created": 1365714795,
+          "Id": "8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c",
+          "Tag": "latest",
+          "Repository": "ubuntu"
+        },
+        {
+          "VirtualSize": 131506275,
+          "Size": 131506275,
+          "Created": 1365714795,
+          "Id": "8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c",
+          "Tag": "precise",
+          "Repository": "ubuntu"
+        },
+        {
+          "VirtualSize": 180116135,
+          "Size": 24653,
+          "Created": 1364102658,
+          "Id": "b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
+          "Tag": "12.10",
+          "Repository": "ubuntu"
+        },
+        {
+          "VirtualSize": 180116135,
+          "Size": 24653,
+          "Created": 1364102658,
+          "Id": "b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
+          "Tag": "quantal",
+          "Repository": "ubuntu"
+        }
+      ]
+
+   The returned json looks like this:
+
+   .. sourcecode:: http
+
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+      
+      [
+        {
+           "RepoTag": [
+             "ubuntu:12.04",
+             "ubuntu:precise",
+             "ubuntu:latest"
+           ],
+           "Id": "8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c",
+           "Created": 1365714795,
+           "Size": 131506275,
+           "VirtualSize": 131506275
+        },
+        {
+           "RepoTag": [
+             "ubuntu:12.10",
+             "ubuntu:quantal"
+           ],
+           "ParentId": "27cf784147099545",
+           "Id": "b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
+           "Created": 1364102658,
+           "Size": 24653,
+           "VirtualSize": 180116135
+        }
+      ]
+
+.. http:get:: /images/viz
+
+   This URI no longer exists.  The ``images -viz`` output is now generated in
+   the client, using the ``/images/json`` data.
+
+v1.6
+****
+
+Full Documentation
+------------------
+
+:doc:`docker_remote_api_v1.6`
+
+What's new
+----------
+
+.. http:post:: /containers/(id)/attach
+
+   **New!** You can now split stderr from stdout. This is done by prefixing
+   a header to each transmition. See :http:post:`/containers/(id)/attach`.
+   The WebSocket attach is unchanged.
+   Note that attach calls on the previous API version didn't change. Stdout and
+   stderr are merged.
+
+
+v1.5
+****
+
+Full Documentation
+------------------
+
+:doc:`docker_remote_api_v1.5`
 
 What's new
 ----------
 
 .. http:post:: /images/create
 
-   **New!** When pull a repo, all images are now downloaded in parallel.
+   **New!** You can now pass registry credentials (via an AuthConfig object)
+   through the `X-Registry-Auth` header
+
+.. http:post:: /images/(name)/push
+
+   **New!** The AuthConfig object now needs to be passed through 
+   the `X-Registry-Auth` header
+
+.. http:get:: /containers/json
+
+   **New!** The format of the `Ports` entry has been changed to a list of
+   dicts each containing `PublicPort`, `PrivatePort` and `Type` describing a
+   port mapping.
+
+v1.4
+****
+
+Full Documentation
+------------------
+
+:doc:`docker_remote_api_v1.4`
+
+What's new
+----------
+
+.. http:post:: /images/create
+
+   **New!** When pulling a repo, all images are now downloaded in parallel.
 
 .. http:get:: /containers/(id)/top
 
@@ -53,10 +237,15 @@ What's new
 
    **New!** Image's name added in the events
 
-:doc:`docker_remote_api_v1.3`
-*****************************
+v1.3
+****
 
 docker v0.5.0 51f6c4a_
+
+Full Documentation
+------------------
+
+:doc:`docker_remote_api_v1.3`
 
 What's new
 ----------
@@ -90,10 +279,15 @@ Start containers (/containers/<id>/start):
 - You can now pass host-specific configuration (e.g. bind mounts) in
   the POST body for start calls
 
-:doc:`docker_remote_api_v1.2`
-*****************************
+v1.2
+****
 
 docker v0.4.2 2e7649b_
+
+Full Documentation
+------------------
+
+:doc:`docker_remote_api_v1.2`
 
 What's new
 ----------
@@ -120,10 +314,15 @@ The client should send it's authConfig as POST on each call of
   deleted/untagged.
 
 
-:doc:`docker_remote_api_v1.1`
-*****************************
+v1.1
+****
 
 docker v0.4.0 a8ae398_
+
+Full Documentation
+------------------
+
+:doc:`docker_remote_api_v1.1`
 
 What's new
 ----------
@@ -144,11 +343,15 @@ What's new
 	   {"error":"Invalid..."}
 	   ...
 
-
-:doc:`docker_remote_api_v1.0`
-*****************************
+v1.0
+****
 
 docker v0.3.4 8d73740_
+
+Full Documentation
+------------------
+
+:doc:`docker_remote_api_v1.0`
 
 What's new
 ----------
@@ -160,32 +363,3 @@ Initial version
 .. _8d73740: https://github.com/dotcloud/docker/commit/8d73740343778651c09160cde9661f5f387b36f4
 .. _2e7649b: https://github.com/dotcloud/docker/commit/2e7649beda7c820793bd46766cbc2cfeace7b168
 .. _51f6c4a: https://github.com/dotcloud/docker/commit/51f6c4a7372450d164c61e0054daf0223ddbd909
-
-==================================
-Docker Remote API Client Libraries
-==================================
-
-These libraries have not been tested by the Docker Maintainers for
-compatibility. Please file issues with the library owners.  If you
-find more library implementations, please list them in Docker doc bugs
-and we will add the libraries here.
-
-+----------------------+----------------+--------------------------------------------+
-| Language/Framework   | Name           | Repository                                 |
-+======================+================+============================================+
-| Python               | docker-py      | https://github.com/dotcloud/docker-py      |
-+----------------------+----------------+--------------------------------------------+
-| Ruby                 | docker-ruby    | https://github.com/ActiveState/docker-ruby |
-+----------------------+----------------+--------------------------------------------+
-| Ruby                 | docker-client  | https://github.com/geku/docker-client      |
-+----------------------+----------------+--------------------------------------------+
-| Ruby                 | docker-api     | https://github.com/swipely/docker-api      |
-+----------------------+----------------+--------------------------------------------+
-| Javascript           | docker-js      | https://github.com/dgoujard/docker-js      |
-+----------------------+----------------+--------------------------------------------+
-| Javascript (Angular) | dockerui       | https://github.com/crosbymichael/dockerui  |
-| **WebUI**            |                |                                            |
-+----------------------+----------------+--------------------------------------------+
-| Java                 | docker-java    | https://github.com/kpelykh/docker-java     |
-+----------------------+----------------+--------------------------------------------+
-

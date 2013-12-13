@@ -2,27 +2,25 @@
 :description: Please note this project is currently under heavy development. It should not be used in production.
 :keywords: Docker, Docker documentation, requirements, virtualbox, vagrant, git, ssh, putty, cygwin, linux
 
-**These instructions have changed for 0.6. If you are upgrading from an earlier version, you will need to follow them again.**
-
 .. _ubuntu_linux:
 
-Ubuntu Linux
-============
+Ubuntu
+======
 
-   **Please note this project is currently under heavy development. It should not be used in production.**
+.. warning::
 
+   These instructions have changed for 0.6. If you are upgrading from
+   an earlier version, you will need to follow them again.
 
-Right now, the officially supported distribution are:
+.. include:: install_header.inc
+
+Docker is supported on the following versions of Ubuntu:
 
 - :ref:`ubuntu_precise`
 - :ref:`ubuntu_raring`
 
-Docker has the following dependencies
-
-* Linux kernel 3.8 (read more about :ref:`kernel`)
-* AUFS file system support (we are working on BTRFS support as an alternative)
-
-Please read :ref:`ufw`, if you plan to use `UFW (Uncomplicated Firewall) <https://help.ubuntu.com/community/UFW>`_
+Please read :ref:`ufw`, if you plan to use `UFW (Uncomplicated
+Firewall) <https://help.ubuntu.com/community/UFW>`_
 
 .. _ubuntu_precise:
 
@@ -38,12 +36,13 @@ Dependencies
 **Linux kernel 3.8**
 
 Due to a bug in LXC, docker works best on the 3.8 kernel. Precise
-comes with a 3.2 kernel, so we need to upgrade it. The kernel you'll install when following these steps
-comes with AUFS built in. We also include the generic headers
-to enable packages that depend on them, like ZFS and the VirtualBox
-guest additions. If you didn't install the headers for your "precise"
-kernel, then you can skip these headers for the "raring" kernel. But
-it is safer to include them if you're not sure.
+comes with a 3.2 kernel, so we need to upgrade it. The kernel you'll
+install when following these steps comes with AUFS built in. We also
+include the generic headers to enable packages that depend on them,
+like ZFS and the VirtualBox guest additions. If you didn't install the
+headers for your "precise" kernel, then you can skip these headers for
+the "raring" kernel. But it is safer to include them if you're not
+sure.
 
 
 .. code-block:: bash
@@ -59,34 +58,53 @@ it is safer to include them if you're not sure.
 Installation
 ------------
 
-Docker is available as a Debian package, which makes installation easy.
+.. warning::
 
-*Please note that these instructions have changed for 0.6. If you are upgrading from an earlier version, you will need
-to follow them again.*
+   These instructions have changed for 0.6. If you are upgrading from
+   an earlier version, you will need to follow them again.
+
+Docker is available as a Debian package, which makes installation
+easy. **See the :ref:`installmirrors` section below if you are not in
+the United States.** Other sources of the Debian packages may be
+faster for you to install.
+
+First add the Docker repository key to your local keychain. You can use the
+``apt-key`` command to check the fingerprint matches: ``36A1 D786 9245 C895 0F96
+6E92 D857 6A8B A88D 21E9``
 
 .. code-block:: bash
 
-   # Add the Docker repository key to your local keychain
-   sudo sh -c "curl https://get.docker.io/gpg | apt-key add -"
+   sudo sh -c "wget -qO- https://get.docker.io/gpg | apt-key add -"
 
-   # Add the Docker repository to your apt sources list.
-   sudo sh -c "echo deb https://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list"
+Add the Docker repository to your apt sources list, update and install the
+``lxc-docker`` package.
 
-   # Update your sources
+*You may receive a warning that the package isn't trusted. Answer yes to
+continue installation.*
+
+.. code-block:: bash
+
+   sudo sh -c "echo deb http://get.docker.io/ubuntu docker main\
+   > /etc/apt/sources.list.d/docker.list"
    sudo apt-get update
-
-   # Install, you will see another warning that the package cannot be authenticated. Confirm install.
    sudo apt-get install lxc-docker
 
-Verify it worked
+.. note::
+
+    There is also a simple ``curl`` script available to help with this process.
+
+    .. code-block:: bash
+
+        curl -s https://get.docker.io/ubuntu/ | sudo sh
+
+Now verify that the installation has worked by downloading the ``ubuntu`` image
+and launching a container.
 
 .. code-block:: bash
 
-   # download the base 'ubuntu' container and run bash inside it while setting up an interactive shell
    sudo docker run -i -t ubuntu /bin/bash
 
-   # type 'exit' to exit
-
+Type ``exit`` to exit
 
 **Done!**, now continue with the :ref:`hello_world` example.
 
@@ -98,10 +116,13 @@ Ubuntu Raring 13.04 (64 bit)
 Dependencies
 ------------
 
-**AUFS filesystem support**
+**Optional AUFS filesystem support**
 
 Ubuntu Raring already comes with the 3.8 kernel, so we don't need to install it. However, not all systems
-have AUFS filesystem support enabled, so we need to install it.
+have AUFS filesystem support enabled. AUFS support is optional as of version 0.7, but it's still available as
+a driver and we recommend using it if you can.
+
+To make sure AUFS is installed, run the following commands:
 
 .. code-block:: bash
 
@@ -114,33 +135,37 @@ Installation
 
 Docker is available as a Debian package, which makes installation easy.
 
-*Please note that these instructions have changed for 0.6. If you are upgrading from an earlier version, you will need
-to follow them again.*
+.. warning::
+
+    Please note that these instructions have changed for 0.6. If you are upgrading from an earlier version, you will need
+    to follow them again.
+
+First add the Docker repository key to your local keychain. You can use the
+``apt-key`` command to check the fingerprint matches: ``36A1 D786 9245 C895 0F96
+6E92 D857 6A8B A88D 21E9``
 
 .. code-block:: bash
 
-   # Add the Docker repository key to your local keychain
-   sudo sh -c "curl http://get.docker.io/gpg | apt-key add -"
+   sudo sh -c "wget -qO- https://get.docker.io/gpg | apt-key add -"
 
-   # Add the Docker repository to your apt sources list.
-   sudo sh -c "echo deb https://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list"
+Add the Docker repository to your apt sources list, update and install the
+``lxc-docker`` package.
 
-   # update
+.. code-block:: bash
+
+   sudo sh -c "echo deb http://get.docker.io/ubuntu docker main\
+   > /etc/apt/sources.list.d/docker.list"
    sudo apt-get update
-
-   # install
    sudo apt-get install lxc-docker
 
-
-Verify it worked
+Now verify that the installation has worked by downloading the ``ubuntu`` image
+and launching a container.
 
 .. code-block:: bash
 
-   # download the base 'ubuntu' container and run bash inside it while setting up an interactive shell
    sudo docker run -i -t ubuntu /bin/bash
 
-   # type exit to exit
-
+Type ``exit`` to exit
 
 **Done!**, now continue with the :ref:`hello_world` example.
 
@@ -150,7 +175,8 @@ Verify it worked
 Docker and UFW
 ^^^^^^^^^^^^^^
 
-Docker uses a bridge to manage containers networking, by default UFW drop all `forwarding`, a first step is to enable forwarding:
+Docker uses a bridge to manage container networking. By default, UFW drops all
+`forwarding` traffic. As a result will you need to enable UFW forwarding:
 
 .. code-block:: bash
 
@@ -168,10 +194,33 @@ Then reload UFW:
    sudo ufw reload
 
 
-UFW's default set of rules denied all `incoming`, so if you want to be able to reach your containers from another host,
-you should allow incoming connections on the docker port (default 4243):
+UFW's default set of rules denies all `incoming` traffic. If you want to be
+able to reach your containers from another host then you should allow
+incoming connections on the Docker port (default 4243):
 
 .. code-block:: bash
 
    sudo ufw allow 4243/tcp
 
+.. _installmirrors:
+
+Mirrors
+^^^^^^^
+
+You should ``ping get.docker.io`` and compare the latency to the
+following mirrors, and pick whichever one is best for you.
+
+Yandex
+------
+
+`Yandex <http://yandex.ru/>`_ in Russia is mirroring the Docker Debian
+packages, updating every 6 hours. Substitute
+``http://mirror.yandex.ru/mirrors/docker/`` for
+``http://get.docker.io/ubuntu`` in the instructions above. For example:
+
+.. code-block:: bash
+
+   sudo sh -c "echo deb http://mirror.yandex.ru/mirrors/docker/ docker main\
+   > /etc/apt/sources.list.d/docker.list"
+   sudo apt-get update
+   sudo apt-get install lxc-docker
