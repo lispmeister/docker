@@ -216,7 +216,8 @@ func getImagesViz(srv *Server, version float64, w http.ResponseWriter, r *http.R
 }
 
 func getInfo(srv *Server, version float64, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
-	return writeJSON(w, http.StatusOK, srv.DockerInfo())
+	srv.Eng.ServeHTTP(w, r)
+	return nil
 }
 
 func getEvents(srv *Server, version float64, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
@@ -377,13 +378,17 @@ func postCommit(srv *Server, version float64, w http.ResponseWriter, r *http.Req
 	if err := json.NewDecoder(r.Body).Decode(config); err != nil && err != io.EOF {
 		utils.Errorf("%s", err)
 	}
-	repo := r.Form.Get("repo")
-	tag := r.Form.Get("tag")
-	container := r.Form.Get("container")
-	author := r.Form.Get("author")
-	comment := r.Form.Get("comment")
-	id, err := srv.ContainerCommit(container, repo, tag, author, comment, config)
-	if err != nil {
+
+	job := srv.Eng.Job("commit", r.Form.Get("container"))
+	job.Setenv("repo", r.Form.Get("repo"))
+	job.Setenv("tag", r.Form.Get("tag"))
+	job.Setenv("author", r.Form.Get("author"))
+	job.Setenv("comment", r.Form.Get("comment"))
+	job.SetenvJson("config", config)
+
+	var id string
+	job.Stdout.AddString(&id)
+	if err := job.Run(); err != nil {
 		return err
 	}
 
@@ -678,17 +683,12 @@ func postContainersStop(srv *Server, version float64, w http.ResponseWriter, r *
 	if err := parseForm(r); err != nil {
 		return err
 	}
-	t, err := strconv.Atoi(r.Form.Get("t"))
-	if err != nil || t < 0 {
-		t = 10
-	}
-
 	if vars == nil {
 		return fmt.Errorf("Missing parameter")
 	}
-	name := vars["name"]
-
-	if err := srv.ContainerStop(name, t); err != nil {
+	job := srv.Eng.Job("stop", vars["name"])
+	job.Setenv("t", r.Form.Get("t"))
+	if err := job.Run(); err != nil {
 		return err
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -717,19 +717,10 @@ func postContainersResize(srv *Server, version float64, w http.ResponseWriter, r
 	if err := parseForm(r); err != nil {
 		return err
 	}
-	height, err := strconv.Atoi(r.Form.Get("h"))
-	if err != nil {
-		return err
-	}
-	width, err := strconv.Atoi(r.Form.Get("w"))
-	if err != nil {
-		return err
-	}
 	if vars == nil {
 		return fmt.Errorf("Missing parameter")
 	}
-	name := vars["name"]
-	if err := srv.ContainerResize(name, height, width); err != nil {
+	if err := srv.Eng.Job("resize", vars["name"], r.Form.Get("h"), r.Form.Get("w")).Run(); err != nil {
 		return err
 	}
 	return nil
